@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.CAPTURE_AUDIO_OUTPUT,
             Manifest.permission.PROCESS_OUTGOING_CALLS,
             Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.MODIFY_AUDIO_SETTINGS
     };
 
     @Override

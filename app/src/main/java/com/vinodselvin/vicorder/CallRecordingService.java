@@ -4,23 +4,27 @@ package com.vinodselvin.vicorder;
  * Created by vinod on 12/9/2017.
  */
 
-import java.io.File;
-import java.io.IOException;
-
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.MediaRecorder;
 import android.os.Environment;
 import android.os.IBinder;
 import android.telephony.TelephonyManager;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.IOException;
+
 public class CallRecordingService extends Service
 {
     MediaRecorder recorder = new MediaRecorder();
+    AudioManager audioManager = null;
+
     boolean recording=false;
     int i=0;
     String fname;
@@ -40,7 +44,7 @@ public class CallRecordingService extends Service
 
                 Toast.makeText(arg0, "Start CaLLED "+recording+fname, Toast.LENGTH_LONG).show();
 
-                startRecording();
+                startRecording(arg0);
 
 
             }
@@ -107,21 +111,51 @@ public class CallRecordingService extends Service
         unregisterReceiver(OutGoingNumDetector);
         Toast.makeText(getApplicationContext(), "Destroyed", Toast.LENGTH_SHORT).show();
     }
-    public void startRecording()
+    public void startRecording(Context context)
     {
         if(recording==false)
         {
             recorder = new MediaRecorder();
             Toast.makeText(getApplicationContext(), "Recorder_Started"+fname, Toast.LENGTH_LONG).show();
+            audioManager = (AudioManager)context.getSystemService(AUDIO_SERVICE);
+            audioManager.setMode(AudioManager.MODE_IN_CALL);
+//            audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 100, 0);
+            audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL,audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL), 0);
+//            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION );
+//            recorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_NB);
+//            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+//            recorder.setAudioEncoder(MediaRecorder.getAudioSourceMax());
+//            recorder.setAudioEncodingBitRate(12000);
+//            recorder.setAudioSamplingRate(44100);
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-            recorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+            recorder.setOutputFormat(AudioFormat.ENCODING_PCM_16BIT);
+            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            recorder.setAudioChannels(1);
+            recorder.setAudioEncodingBitRate(1411200);
+            recorder.setAudioSamplingRate(88200);
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        while(true) {
+                            sleep(1000);
+                            audioManager.setMode(AudioManager.MODE_IN_CALL);
+                            if (!audioManager.isSpeakerphoneOn())
+                                audioManager.setSpeakerphoneOn(true);
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            };
+
+            thread.start();
             String file= Environment.getExternalStorageDirectory().toString();
             String filepath= file+"/vinodcalls";
             File dir= new File(filepath);
             dir.mkdirs();
             long unixTime = System.currentTimeMillis() / 1000L;
-            filepath+="/"+fname+unixTime+".3gp";
+            filepath+="/"+fname+unixTime+".amr";
             recorder.setOutputFile(filepath);
 
             try {
@@ -142,7 +176,7 @@ public class CallRecordingService extends Service
         if(recording==true)
         {
             Toast.makeText(getApplicationContext(), "Recorder_Relesed from "+recording, Toast.LENGTH_LONG).show();
-
+            audioManager.setMode(AudioManager.MODE_NORMAL);
             recorder.stop();
             recorder.reset();
             recorder.release();
