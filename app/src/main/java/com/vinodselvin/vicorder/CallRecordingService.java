@@ -19,6 +19,9 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 
 public class CallRecordingService extends Service
 {
@@ -119,14 +122,7 @@ public class CallRecordingService extends Service
             Toast.makeText(getApplicationContext(), "Recorder_Started"+fname, Toast.LENGTH_LONG).show();
             audioManager = (AudioManager)context.getSystemService(AUDIO_SERVICE);
             audioManager.setMode(AudioManager.MODE_IN_CALL);
-//            audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 100, 0);
             audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL,audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL), 0);
-//            recorder.setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION );
-//            recorder.setOutputFormat(MediaRecorder.OutputFormat.AMR_NB);
-//            recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-//            recorder.setAudioEncoder(MediaRecorder.getAudioSourceMax());
-//            recorder.setAudioEncodingBitRate(12000);
-//            recorder.setAudioSamplingRate(44100);
             recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             recorder.setOutputFormat(AudioFormat.ENCODING_PCM_16BIT);
             recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
@@ -149,13 +145,18 @@ public class CallRecordingService extends Service
                 }
             };
 
-            thread.start();
+            if(!audioManager.isWiredHeadsetOn()) {
+                thread.start();
+            }
             String file= Environment.getExternalStorageDirectory().toString();
-            String filepath= file+"/vinodcalls";
+            Date d = Calendar.getInstance().getTime(); // Current time
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd"); // Set your date format
+            String folder = sdf.format(d);
+            String filepath= file+"/MyCalls/"+folder;
             File dir= new File(filepath);
             dir.mkdirs();
-            long unixTime = System.currentTimeMillis() / 1000L;
-            filepath+="/"+fname+unixTime+".amr";
+            fname += "-" + (new SimpleDateFormat("HH:mm:ss")).format(d);
+            filepath+="/"+fname+".amr";
             recorder.setOutputFile(filepath);
 
             try {
